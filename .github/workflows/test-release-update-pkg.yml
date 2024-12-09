@@ -1,0 +1,82 @@
+name: Test and Release Package
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  test:
+    name: Testing with pytest.
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v3
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install . pytest
+        # if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+    - name: Test with pytest
+      run: |
+        pytest
+
+  release-job:
+    needs: [test]
+    name: Automated pull requests creation.
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Release with release-please
+        uses: google-github-actions/release-please-action@v2
+        with:
+          token: ${{ secrets.RELEASE_PLEASE_FINE_GRAINED_GITHUB_TOKEN }}
+          release-type: simple
+
+  # update-version:
+  #   needs: [test, release-job]
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #
+  #     - name: Extract latest version from CHANGELOG.md.
+  #       id: get_version
+  #       run: |
+  #         # https://github.blog/changelog/2022-10-11-github-actions-deprecating-save-state-and-set-output-commands/
+  #         # https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/workflow-commands-for-github-actions#environment-files
+  #         # VERSION=$(grep -oP '\[\K[0-9]+\.[0-9]+\.[0-9]+' CHANGELOG.md | head -1)
+  #         # echo $VERSION
+  #         # echo "{PKG_VERSION}={VERSION}" >> "$GITHUB_ENV"
+  #         echo "VERSION=$(grep -oP '\[\K[0-9]+\.[0-9]+\.[0-9]+' CHANGELOG.md | head -1)" >> "$GITHUB_OUTPUT"
+  #
+  #     - name: Update version in setup.py config file.
+  #       run: |
+  #         # sed -i "s/version = \".*\"/version = \"${{ steps.get_version.outputs.VERSION }}\"/" setup.py
+  #         # sed -i 's/version="[^"]*"/version="$PKG_VERSION"/' setup.py
+  #         sed -i 's/version="[^"]*"/version="${{ steps.get_version.outputs.VERSION }}"/' setup.py
+  #
+  #
+  #     - name: Commit and push if changed.
+  #       run: |
+  #         git config --global user.email "action@github.com"
+  #         git config --global user.name "GitHub Action"
+  #         git add setup.py
+  #         git commit -m "Update version to ${{ steps.get_version.outputs.VERSION }}" || echo "No changes to commit"
+  #         git push
+  #
