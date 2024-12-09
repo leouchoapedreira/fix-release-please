@@ -66,11 +66,13 @@ jobs:
 
       - name: Update version in setup.py config file.
         run: |
+          echo ${{ steps.get_version.outputs.VERSION }}
           sed -i 's/version="[^"]*"/version="${{ steps.get_version.outputs.VERSION }}"/' setup.py
 
 
       - name: Commit and push if changed.
         run: |
+          echo ${{ steps.get_version.outputs.VERSION }}
           git config --global user.email "action@github.com"
           git config --global user.name "GitHub Action"
           git add setup.py
