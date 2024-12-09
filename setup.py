@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 _ = setuptools.setup(
     name="custom_transformers",
-    version="0.0.0",
+    version="",
     author="Leonardo Uchôa Pedreira",
     author_email="leonardo.pedreira@samplemed.com.br",
     description="Custom Transformers",
